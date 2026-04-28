@@ -9,7 +9,8 @@ import {
 
 // --- 파이어베이스 SDK 초기화 ---
 import { initializeApp } from 'firebase/app';
-import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile, onAuthStateChanged } from 'firebase/auth';
+// [수정됨] setPersistence, browserLocalPersistence 추가 임포트
+import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile, onAuthStateChanged, setPersistence, browserLocalPersistence } from 'firebase/auth';
 import { getFirestore, doc, setDoc, onSnapshot, collection, addDoc, deleteDoc, updateDoc } from 'firebase/firestore';
 
 // 사용자 제공 파이어베이스 설정 적용
@@ -25,6 +26,10 @@ const firebaseConfig = {
 const appId = 'specium-collection-v1';
 const firebaseApp = initializeApp(firebaseConfig);
 const auth = getAuth(firebaseApp);
+
+// [수정됨] Vercel 배포 및 PWA(설치형 앱) 환경에서 로그인 세션을 안전하게 유지하기 위한 설정 명시
+setPersistence(auth, browserLocalPersistence).catch(console.error);
+
 const db = getFirestore(firebaseApp);
 
 // --- 이미지 압축 유틸리티 ---
@@ -212,7 +217,7 @@ const IntroSequence = ({ onComplete }) => {
   );
 };
 
-// --- 아이디/비밀번호 기반 로그인/회원가입 화면 (스크롤 이슈 수정됨) ---
+// --- 아이디/비밀번호 기반 로그인/회원가입 화면 ---
 const AuthScreen = ({ onUnlock, user }) => {
   const [isLoginTab, setIsLoginTab] = useState(true);
   const [agentId, setAgentId] = useState('');
@@ -297,7 +302,6 @@ const AuthScreen = ({ onUnlock, user }) => {
   };
 
   return (
-    // [수정] fixed inset-0에 overflow-y-auto를 추가하고 내부 정렬을 변경하여 키보드가 올라올 때 스크롤 가능하게 함
     <div className="fixed inset-0 z-40 bg-[#050505] text-white overflow-y-auto custom-scrollbar">
       <div className="min-h-full flex flex-col items-center justify-center p-4 md:p-8">
         <div className={`p-8 md:p-10 rounded-[2.5rem] border ${error ? 'border-rose-500 shadow-[0_0_40px_rgba(225,29,72,0.4)]' : success ? 'border-cyan-400 shadow-[0_0_40px_rgba(34,211,238,0.5)]' : 'border-slate-800 shadow-2xl'} bg-black/60 backdrop-blur-xl flex flex-col w-full max-w-[400px] transition-all my-auto`}>
@@ -545,7 +549,6 @@ const App = () => {
             {error && <div className="mb-6 p-4 bg-rose-500/10 border border-rose-500 rounded-xl text-rose-400 text-sm flex items-center gap-2"><AlertCircle size={18} /> {error}</div>}
             
             <div className="space-y-8">
-              {/* 1. 프로파일 이미지 슬롯 */}
               <section className="bg-slate-900/60 rounded-[2.5rem] border border-slate-800 p-8">
                 <div className="flex items-center gap-2 mb-6 border-l-4 border-cyan-500 pl-4"><ImageIcon className="text-cyan-400" size={18} /><h3 className="text-sm font-black uppercase tracking-[0.2em]">Toy Profiles</h3></div>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
@@ -557,13 +560,11 @@ const App = () => {
                 </div>
               </section>
 
-              {/* 2. 브랜드/카테고리 */}
               <section className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                  <div className="bg-slate-900/60 rounded-[2.5rem] border border-slate-800 p-8"><UltraDropdown label="브랜드 선택" placeholder="브랜드를 선택하세요" options={brands} value={collectionForm.brand} onChange={(v) => setCollectionForm({...collectionForm, brand: v})} onManage={() => setManageType('brand')} /></div>
                  <div className="bg-slate-900/60 rounded-[2.5rem] border border-slate-800 p-8"><UltraDropdown label="카테고리 선택" placeholder="카테고리를 선택하세요" options={categories} value={collectionForm.category} onChange={(v) => setCollectionForm({...collectionForm, category: v})} onManage={() => setManageType('category')} /></div>
               </section>
 
-              {/* 3. 기본 정보 */}
               <section className="bg-slate-900/60 rounded-[2.5rem] border border-slate-800 p-8 space-y-6">
                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                     <div className="space-y-2"><span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Toy Series</span><input type="text" value={collectionForm.series} onChange={(e) => setCollectionForm({...collectionForm, series: e.target.value})} className="w-full bg-black/50 border border-slate-700 rounded-xl px-4 py-3 text-sm focus:border-cyan-500 outline-none transition-all" placeholder="Ex: Gundam 00" /></div>
@@ -575,7 +576,6 @@ const App = () => {
                  </div>
               </section>
 
-              {/* 4. 설명서 업로드 */}
               <section className="bg-slate-900/60 rounded-[2.5rem] border border-slate-800 p-8 space-y-4">
                 <div className="flex items-center justify-between border-l-4 border-slate-500 pl-4 mb-6"><div className="flex items-center gap-2"><BookOpen className="text-slate-400" size={18} /><h3 className="text-sm font-black uppercase tracking-[0.2em]">INSTRUCTION</h3></div></div>
                 <div className="flex gap-4 overflow-x-auto pb-4 custom-scrollbar">
@@ -586,7 +586,6 @@ const App = () => {
                 </div>
               </section>
 
-              {/* 5. 캐릭터 카드 */}
               <section className="bg-slate-900/60 rounded-[2.5rem] border border-slate-800 p-8 space-y-4">
                 <div className="flex items-center gap-2 border-l-4 border-slate-500 pl-4 mb-6"><Sparkles className="text-slate-400" size={18} /><h3 className="text-sm font-black uppercase tracking-[0.2em]">Character Cards</h3></div>
                 <div className="grid grid-cols-2 gap-4 md:gap-8">
@@ -595,7 +594,6 @@ const App = () => {
                 </div>
               </section>
 
-              {/* 6. 평가 */}
               <section className="bg-slate-900/60 rounded-[2.5rem] border border-slate-800 p-8">
                 <div className="flex items-center gap-2 mb-8 border-l-4 border-rose-500 pl-4"><Target className="text-rose-500" size={18} /><h3 className="text-sm font-black uppercase tracking-[0.2em]">Evaluation Ratings</h3></div>
                 <div className="flex flex-col sm:flex-row gap-8 justify-between">
@@ -614,7 +612,6 @@ const App = () => {
         )}
       </div>
 
-      {/* 상세 보기 팝업 */}
       {isDetailOpen && selectedCollection && (
         <div className="fixed inset-0 z-[250] bg-black/95 backdrop-blur-xl flex items-center justify-center p-4 overflow-y-auto animate-in fade-in duration-300">
           <div className="bg-slate-900 border border-slate-700/50 rounded-[2.5rem] w-full max-w-2xl shadow-[0_0_80px_rgba(0,0,0,0.8)] flex flex-col my-8">
@@ -654,7 +651,6 @@ const App = () => {
         </div>
       )}
 
-      {/* 브랜드 관리 모달 */}
       {manageType && (
         <div className="fixed inset-0 z-[260] bg-black/90 backdrop-blur-xl flex items-center justify-center p-4 animate-in fade-in duration-200">
           <div className="bg-slate-950 border border-slate-700/50 rounded-[2.5rem] w-full max-w-sm shadow-[0_0_80px_rgba(0,0,0,0.8)] p-8">
@@ -665,7 +661,6 @@ const App = () => {
         </div>
       )}
 
-      {/* 울트라 이미지 뷰어 (상세 모달 이미지 클릭 시 발생) */}
       <UltraImageViewer src={detailViewerImage} isOpen={isDetailViewerOpen} onClose={() => setIsDetailViewerOpen(false)} />
 
       <style>{`.custom-scrollbar::-webkit-scrollbar { width: 5px; height: 5px; } .custom-scrollbar::-webkit-scrollbar-track { background: transparent; } .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(34, 211, 238, 0.2); border-radius: 10px; }`}</style>
