@@ -225,15 +225,21 @@ const AuthScreen = ({ onUnlock, user }) => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  
+  // [수정/복구 완료] 타이머가 리렌더링에 의해 취소되지 않도록 안전 장치(Ref) 추가
+  const hasUnlockedRef = useRef(false);
 
   useEffect(() => {
-    // 자동 로그인의 경우 (앱을 다시 켰을 때)
-    if (user && !success) {
+    // 앱이 이전 세션을 기억하고 user를 넘겨주었을 때 (자동 로그인)
+    if (user && !hasUnlockedRef.current) {
+      hasUnlockedRef.current = true; // 한 번만 실행되도록 잠금
       setSuccess(true);
-      const timer = setTimeout(onUnlock, 1000);
+      const timer = setTimeout(() => {
+        onUnlock();
+      }, 1000);
       return () => clearTimeout(timer);
     }
-  }, [user, success, onUnlock]);
+  }, [user, onUnlock]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -274,9 +280,14 @@ const AuthScreen = ({ onUnlock, user }) => {
         }
       }
       
-      // [수정/복구] 성공 상태로 변경 후 1.5초 뒤에 메인 화면(onUnlock)으로 넘겨주는 타이머 복구
-      setSuccess(true);
-      setTimeout(onUnlock, 1500); 
+      // 수동 로그인 성공 시 처리
+      if (!hasUnlockedRef.current) {
+        hasUnlockedRef.current = true;
+        setSuccess(true);
+        setTimeout(() => {
+          onUnlock();
+        }, 1500); 
+      }
 
     } catch (err) {
       console.error("Firebase Auth Error:", err.code, err.message);
@@ -308,10 +319,7 @@ const AuthScreen = ({ onUnlock, user }) => {
           errorMsg = `오류 발생: ${err.message}`;
       }
       setError(errorMsg);
-    } finally {
-      if (!success) {
-        setLoading(false);
-      }
+      setLoading(false);
     }
   };
 
