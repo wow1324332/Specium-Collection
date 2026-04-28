@@ -224,6 +224,7 @@ const AuthScreen = ({ onUnlock, user }) => {
   const [name, setName] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  // [수정] 컴포넌트 마운트 시 무조건 false로 시작하도록 초기화 강제
   const [success, setSuccess] = useState(false);
 
   useEffect(() => {
@@ -237,7 +238,6 @@ const AuthScreen = ({ onUnlock, user }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    // [수정] 모바일에서 폼이 먹통되는 것을 막기 위해 명시적으로 커스텀 에러를 띄웁니다.
     if (!isLoginTab && !name.trim()) {
       setError("에이전트 이름(Agent Name)을 입력해주세요.");
       return;
@@ -273,8 +273,8 @@ const AuthScreen = ({ onUnlock, user }) => {
           await updateProfile(userCredential.user, { displayName: name.trim() });
         }
       }
+      // 성공 상태로 변경 (이때 버튼 모양과 문구가 Access Granted로 바뀜)
       setSuccess(true);
-      setTimeout(onUnlock, 1500);
     } catch (err) {
       console.error("Firebase Auth Error:", err.code, err.message);
       let errorMsg = "인증 과정에서 오류가 발생했습니다.";
@@ -306,7 +306,10 @@ const AuthScreen = ({ onUnlock, user }) => {
       }
       setError(errorMsg);
     } finally {
-      setLoading(false);
+      // 에러가 났을 때만 로딩 상태 해제 (성공했으면 언락 애니메이션을 위해 놔둠)
+      if (!success) {
+        setLoading(false);
+      }
     }
   };
 
@@ -335,24 +338,22 @@ const AuthScreen = ({ onUnlock, user }) => {
               {!isLoginTab && (
                 <div className="space-y-1.5">
                   <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-2">Agent Name</span>
-                  {/* [수정] 모바일 폼 무응답 방지를 위해 HTML5 기본 검증 속성(required 등) 제거 */}
                   <input type="text" value={name} onChange={(e) => setName(e.target.value)} className="w-full bg-black/50 border border-slate-700 rounded-xl px-4 py-3 text-sm focus:border-cyan-500 outline-none transition-all text-white placeholder-slate-700" placeholder="Agent Name" />
                 </div>
               )}
               <div className="space-y-1.5">
                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-2">Security ID</span>
-                {/* [수정] required 속성 제거 */}
                 <input type="text" value={agentId} onChange={(e) => setAgentId(e.target.value)} className="w-full bg-black/50 border border-slate-700 rounded-xl px-4 py-3 text-sm focus:border-cyan-500 outline-none transition-all text-white placeholder-slate-700" placeholder="Agent ID" />
               </div>
               <div className="space-y-1.5">
                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-2">Passcode</span>
-                {/* [수정] required, minLength 속성 제거 */}
                 <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full bg-black/50 border border-slate-700 rounded-xl px-4 py-3 text-sm focus:border-cyan-500 outline-none transition-all text-white placeholder-slate-700" placeholder="••••••••" />
               </div>
             </div>
 
+            {/* [수정] success와 loading 상태를 명확히 분리하여 텍스트 렌더링 정상화 */}
             <button type="submit" disabled={loading || success} className="w-full mt-8 py-4 bg-gradient-to-r from-cyan-600 to-cyan-400 hover:from-cyan-500 hover:to-cyan-300 text-white rounded-2xl font-black uppercase text-sm shadow-[0_0_20px_rgba(34,211,238,0.3)] disabled:opacity-50 hover:scale-[1.02] active:scale-95 transition-all">
-              {loading ? 'Processing...' : success ? 'Access Granted' : isLoginTab ? 'Authenticate' : 'Initialize Agent'}
+              {success ? 'Access Granted' : loading ? 'Processing...' : (isLoginTab ? 'Authenticate' : 'Initialize Agent')}
             </button>
           </form>
         </div>
