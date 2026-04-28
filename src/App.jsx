@@ -224,10 +224,10 @@ const AuthScreen = ({ onUnlock, user }) => {
   const [name, setName] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  // [수정] 컴포넌트 마운트 시 무조건 false로 시작하도록 초기화 강제
   const [success, setSuccess] = useState(false);
 
   useEffect(() => {
+    // 자동 로그인의 경우 (앱을 다시 켰을 때)
     if (user && !success) {
       setSuccess(true);
       const timer = setTimeout(onUnlock, 1000);
@@ -273,8 +273,11 @@ const AuthScreen = ({ onUnlock, user }) => {
           await updateProfile(userCredential.user, { displayName: name.trim() });
         }
       }
-      // 성공 상태로 변경 (이때 버튼 모양과 문구가 Access Granted로 바뀜)
+      
+      // [수정/복구] 성공 상태로 변경 후 1.5초 뒤에 메인 화면(onUnlock)으로 넘겨주는 타이머 복구
       setSuccess(true);
+      setTimeout(onUnlock, 1500); 
+
     } catch (err) {
       console.error("Firebase Auth Error:", err.code, err.message);
       let errorMsg = "인증 과정에서 오류가 발생했습니다.";
@@ -306,7 +309,6 @@ const AuthScreen = ({ onUnlock, user }) => {
       }
       setError(errorMsg);
     } finally {
-      // 에러가 났을 때만 로딩 상태 해제 (성공했으면 언락 애니메이션을 위해 놔둠)
       if (!success) {
         setLoading(false);
       }
@@ -351,7 +353,6 @@ const AuthScreen = ({ onUnlock, user }) => {
               </div>
             </div>
 
-            {/* [수정] success와 loading 상태를 명확히 분리하여 텍스트 렌더링 정상화 */}
             <button type="submit" disabled={loading || success} className="w-full mt-8 py-4 bg-gradient-to-r from-cyan-600 to-cyan-400 hover:from-cyan-500 hover:to-cyan-300 text-white rounded-2xl font-black uppercase text-sm shadow-[0_0_20px_rgba(34,211,238,0.3)] disabled:opacity-50 hover:scale-[1.02] active:scale-95 transition-all">
               {success ? 'Access Granted' : loading ? 'Processing...' : (isLoginTab ? 'Authenticate' : 'Initialize Agent')}
             </button>
