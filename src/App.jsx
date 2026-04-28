@@ -9,7 +9,6 @@ import {
 
 // --- 파이어베이스 SDK 초기화 ---
 import { initializeApp } from 'firebase/app';
-// [수정됨] setPersistence, browserLocalPersistence 추가 임포트
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile, onAuthStateChanged, setPersistence, browserLocalPersistence } from 'firebase/auth';
 import { getFirestore, doc, setDoc, onSnapshot, collection, addDoc, deleteDoc, updateDoc } from 'firebase/firestore';
 
@@ -27,7 +26,7 @@ const appId = 'specium-collection-v1';
 const firebaseApp = initializeApp(firebaseConfig);
 const auth = getAuth(firebaseApp);
 
-// [수정됨] Vercel 배포 및 PWA(설치형 앱) 환경에서 로그인 세션을 안전하게 유지하기 위한 설정 명시
+// Vercel 배포 및 PWA(설치형 앱) 환경에서 로그인 세션을 안전하게 유지하기 위한 설정 명시
 setPersistence(auth, browserLocalPersistence).catch(console.error);
 
 const db = getFirestore(firebaseApp);
@@ -237,11 +236,21 @@ const AuthScreen = ({ onUnlock, user }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // [수정] 모바일에서 폼이 먹통되는 것을 막기 위해 명시적으로 커스텀 에러를 띄웁니다.
+    if (!isLoginTab && !name.trim()) {
+      setError("에이전트 이름(Agent Name)을 입력해주세요.");
+      return;
+    }
     if (!agentId.trim() || !password.trim()) {
       setError("아이디와 비밀번호를 모두 입력해주세요.");
       return;
     }
-    
+    if (password.length < 6) {
+      setError("보안을 위해 비밀번호는 최소 6자리 이상이어야 합니다.");
+      return;
+    }
+
     setError('');
     setLoading(true);
 
@@ -271,7 +280,7 @@ const AuthScreen = ({ onUnlock, user }) => {
       let errorMsg = "인증 과정에서 오류가 발생했습니다.";
       switch(err.code) {
         case 'auth/operation-not-allowed':
-          errorMsg = "파이어베이스 설정 오류: Firebase Console > Authentication > Sign-in method에서 'Email/Password'를 사용 설정(Enable)해야 합니다.";
+          errorMsg = "파이어베이스 설정 오류: Firebase Console > Authentication > Sign-in method에서 '이메일/비밀번호' 제공업체를 사용 설정(Enable)해야 합니다.";
           break;
         case 'auth/email-already-in-use':
           errorMsg = "이미 존재하는 아이디입니다. 다른 아이디를 선택하거나 로그인해 주세요.";
@@ -326,16 +335,19 @@ const AuthScreen = ({ onUnlock, user }) => {
               {!isLoginTab && (
                 <div className="space-y-1.5">
                   <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-2">Agent Name</span>
-                  <input type="text" value={name} onChange={(e) => setName(e.target.value)} required={!isLoginTab} className="w-full bg-black/50 border border-slate-700 rounded-xl px-4 py-3 text-sm focus:border-cyan-500 outline-none transition-all text-white placeholder-slate-700" placeholder="Agent Name" />
+                  {/* [수정] 모바일 폼 무응답 방지를 위해 HTML5 기본 검증 속성(required 등) 제거 */}
+                  <input type="text" value={name} onChange={(e) => setName(e.target.value)} className="w-full bg-black/50 border border-slate-700 rounded-xl px-4 py-3 text-sm focus:border-cyan-500 outline-none transition-all text-white placeholder-slate-700" placeholder="Agent Name" />
                 </div>
               )}
               <div className="space-y-1.5">
                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-2">Security ID</span>
-                <input type="text" value={agentId} onChange={(e) => setAgentId(e.target.value)} required className="w-full bg-black/50 border border-slate-700 rounded-xl px-4 py-3 text-sm focus:border-cyan-500 outline-none transition-all text-white placeholder-slate-700" placeholder="Agent ID" />
+                {/* [수정] required 속성 제거 */}
+                <input type="text" value={agentId} onChange={(e) => setAgentId(e.target.value)} className="w-full bg-black/50 border border-slate-700 rounded-xl px-4 py-3 text-sm focus:border-cyan-500 outline-none transition-all text-white placeholder-slate-700" placeholder="Agent ID" />
               </div>
               <div className="space-y-1.5">
                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-2">Passcode</span>
-                <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} className="w-full bg-black/50 border border-slate-700 rounded-xl px-4 py-3 text-sm focus:border-cyan-500 outline-none transition-all text-white placeholder-slate-700" placeholder="••••••••" />
+                {/* [수정] required, minLength 속성 제거 */}
+                <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full bg-black/50 border border-slate-700 rounded-xl px-4 py-3 text-sm focus:border-cyan-500 outline-none transition-all text-white placeholder-slate-700" placeholder="••••••••" />
               </div>
             </div>
 
